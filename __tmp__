@@ -1,0 +1,82 @@
+$ErrorActionPreference = 'Stop'
+
+$catalogPath = 'smc-extracted-catalog.json'
+$imagesRoot = 'public\smc-images'
+$outputPath = 'src\data\smc_imported.ts'
+$rawCatalog = Get-Content -Raw $catalogPath | ConvertFrom-Json
+$catalog = @($rawCatalog | ForEach-Object { if ($_.value) { $_.value } else { $_ } } | Where-Object { $_.url -and $_.name } | Sort-Object url -Unique)
+$folders = @(Get-ChildItem $imagesRoot -Directory)
+$folderBySlug = @{}
+foreach ($folder in $folders) { $folderBySlug[$folder.Name] = $folder }
+
+$records = [System.Collections.Generic.List[object]]::new()
+$seenSlugs = @{}
+$nextId = 100001
+
+foreach ($product in $catalog) {
+  if (!$product.url -or !$product.name) { continue }
+  $slug = ([uri]$product.url).Segments[-1].TrimEnd('/')
+  $folder = $folderBySlug[$slug]
+  if (!$folder) { continue }
+  $files = @(Get-ChildItem $folder.FullName -File | Where-Object { $_.Extension -match '^\.(jpg|jpeg|png|webp)$' } | Sort-Object Name)
+  if (!$files.Count) { continue }
+
+  $isCampervan = $slug -match 'campervan'
+  $isNew = $slug -match '^new-'
+  $yearMatch = [regex]::Match($slug, '^(?:new|used)-(\d{4})-')
+  $year = if ($yearMatch.Success) { [int]$yearMatch.Groups[1].Value } else { 0 }
+  $makeMatch = [regex]::Match($slug, '^(?:new|used)-\d{4}-([a-z0-9]+(?:-[a-z0-9]+){0,2})-')
+  $brand = if ($makeMatch.Success) { ($makeMatch.Groups[1].Value -split '-' | ForEach-Object { if ($_ -match '^(vw|bmc)$') { $_.ToUpperInvariant() } else { $_.Substring(0,1).ToUpperInvariant() + $_.Substring(1) } }) -join ' ' } else { 'Other' }
+  if ($brand -match '^Auto Sleepers$') { $brand = 'Auto-Sleepers' }
+  if ($brand -match '^Auto Trail$') { $brand = 'Auto-Trail' }
+  if ($brand -match '^Vw$') { $brand = 'Volkswagen' }
+  $priceMatch = [regex]::Match([string]$product.price, '(\d[\d,]*(?:\.\d{1,2})?)')
+  $price = if ($priceMatch.Success) { [decimal]::Parse($priceMatch.Groups[1].Value.Replace(',', ''), [Globalization.CultureInfo]::InvariantCulture) } else { $null }`n  if ($null -ne $price) { $price = [math]::Round($price * 0.8, 2, [MidpointRounding]::AwayFromZero); $formattedPrice = if ($price -eq [math]::Truncate($price)) { '{0:N0}' -f $price } else { '{0:N2}' -f $price }; $price = '£' + $formattedPrice } else { $price = 'Price on request' }
+  $images = @($files | ForEach-Object { '/smc-images/' + $slug + '/' + $_.Name })
+  $description = [string]$product.description
+  if (!$description) { $description = "$($product.name) available for sale. Contact us for current availability and full specifications." }
+
+  $records.Add([pscustomobject]@{
+    id = $nextId; name = [string]$product.name; brand = $brand
+    type = $(if ($isCampervan) { 'Campervan' } else { 'Motorhome' })
+    berths = 0; price = $price; year = $year; isNew = [bool]$isNew; length = 'Details on request'
+    weight = 'Details on request'; transmission = 'Details on request'; fuel = 'Details on request'
+    engine = 'Details on request'; description = $description; features = @(); images = $images
+  })
+  $seenSlugs[$slug] = $true
+  $nextId++
+}
+
+# Keep every locally downloaded listing visible even if its product-page extraction is absent.
+foreach ($folder in $folders) {
+  if ($seenSlugs.ContainsKey($folder.Name)) { continue }
+  $files = @(Get-ChildItem $folder.FullName -File | Where-Object { $_.Extension -match '^\.(jpg|jpeg|png|webp)$' } | Sort-Object Name)
+  if (!$files.Count) { continue }
+  $name = (($folder.Name -replace '-\d+$','') -split '-' | ForEach-Object { if ($_){ $_.Substring(0,1).ToUpperInvariant()+$_.Substring(1) } }) -join ' '
+  $isCampervan = $folder.Name -match 'campervan'
+  $isNew = $folder.Name -match '^new-'
+  $yearMatch = [regex]::Match($folder.Name, '^(?:new|used)-(\d{4})-')
+  $brandMatch = [regex]::Match($folder.Name, '^(?:new|used)-\d{4}-([a-z0-9]+(?:-[a-z0-9]+){0,2})-')
+  $brand = if ($brandMatch.Success) { ($brandMatch.Groups[1].Value -split '-' | ForEach-Object { $_.Substring(0,1).ToUpperInvariant()+$_.Substring(1) }) -join ' ' } else { 'Other' }
+  if ($brand -eq 'Auto Sleepers') { $brand = 'Auto-Sleepers' }
+  if ($brand -eq 'Auto Trail') { $brand = 'Auto-Trail' }
+  if ($brand -eq 'Vw') { $brand = 'Volkswagen' }
+  $records.Add([pscustomobject]@{
+    id = $nextId; name = $name; brand = $brand; type = $(if ($isCampervan) { 'Campervan' } else { 'Motorhome' })
+    berths = 0; price = 'Price on request'; year = $(if ($yearMatch.Success) { [int]$yearMatch.Groups[1].Value } else { 0 })
+    isNew = [bool]$isNew; length = 'Details on request'; weight = 'Details on request'; transmission = 'Details on request'
+    fuel = 'Details on request'; engine = 'Details on request'
+    description = 'Contact us for current availability, price and full specifications.'; features = @()
+    images = @($files | ForEach-Object { '/smc-images/' + $folder.Name + '/' + $_.Name })
+  })
+  $nextId++
+}
+
+$json = ConvertTo-Json -InputObject @($records) -Depth 6 -Compress
+$escaped = $json.Replace('\\', '\\\\').Replace('`', '\\`').Replace('${', '\\${')
+$source = "import type { Motorhome } from './motorhomes';`n`nconst importedCatalog = JSON.parse(String.raw``$escaped``) as Motorhome[];`n`nexport const importedMotorhomes: Motorhome[] = importedCatalog;`n"
+[System.IO.File]::WriteAllText((Join-Path (Get-Location) $outputPath), $source, [System.Text.UTF8Encoding]::new($false))
+$campervanCount = @($records | Where-Object { $_.type -eq 'Campervan' }).Count
+$motorhomeCount = $records.Count - $campervanCount
+Write-Output "Generated $($records.Count) imported listings ($motorhomeCount motorhomes, $campervanCount campervans); matched $($seenSlugs.Count) source listings and included remaining downloaded folders."
+
