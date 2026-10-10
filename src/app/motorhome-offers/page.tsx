@@ -1,11 +1,57 @@
 import Link from "next/link";
+import { closeSync, openSync, readSync, statSync } from "node:fs";
+import path from "node:path";
 import { Tag } from "lucide-react";
 import { motorhomes } from "@/data/motorhomes";
 import { importedMotorhomes } from "@/data/smc_imported";
 import ImageWithFallback from "@/components/ImageWithFallback";
 
+const publicImagesDirectory = `${path.resolve(process.cwd(), "public", "smc-images")}${path.sep}`;
+
+function findUsableImage(images: string[]): string | undefined {
+  return images.find((image) => {
+    if (!image.startsWith("/smc-images/")) return false;
+
+    const imagePath = path.resolve(process.cwd(), "public", image.slice(1));
+    if (!imagePath.startsWith(publicImagesDirectory)) return false;
+
+    try {
+      const file = statSync(imagePath);
+      if (!file.isFile() || file.size === 0) return false;
+
+      const fileDescriptor = openSync(imagePath, "r");
+      try {
+        const header = Buffer.alloc(12);
+        const bytesRead = readSync(fileDescriptor, header, 0, header.length, 0);
+        const extension = path.extname(imagePath).toLowerCase();
+
+        if (extension === ".jpg" || extension === ".jpeg") {
+          return bytesRead >= 2 && header[0] === 0xff && header[1] === 0xd8;
+        }
+        if (extension === ".png") {
+          return bytesRead >= 8 && header.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+        }
+        if (extension === ".webp") {
+          return bytesRead >= 12 && header.toString("ascii", 0, 4) === "RIFF" && header.toString("ascii", 8, 12) === "WEBP";
+        }
+        return false;
+      } finally {
+        closeSync(fileDescriptor);
+      }
+    } catch {
+      return false;
+    }
+  });
+}
+
 export default function MotorhomeOffersPage() {
-  const offerMotorhomes = [...motorhomes, ...importedMotorhomes.filter((vehicle) => vehicle.type !== "Campervan")].filter((m) => m.isOffer && (!m.availability || m.availability === "Available" || m.availability === "Back order")).slice(0, 60);
+  const offerMotorhomes = [...motorhomes, ...importedMotorhomes.filter((vehicle) => vehicle.type !== "Campervan")]
+    .filter((vehicle) => vehicle.isOffer && (!vehicle.availability || vehicle.availability === "Available" || vehicle.availability === "Back order"))
+    .flatMap((vehicle) => {
+      const image = findUsableImage(vehicle.images);
+      return image ? [{ ...vehicle, images: [image] }] : [];
+    })
+    .slice(0, 60);
 
   return (
     <div className="min-h-screen">
@@ -41,7 +87,7 @@ export default function MotorhomeOffersPage() {
             >
               <div className="relative">
                 <ImageWithFallback
-                  src={motorhome.images[0] || "/placeholder"}
+                  src={motorhome.images[0]}
                   alt={motorhome.name}
                   width={400}
                   height={224}
