@@ -3,9 +3,16 @@ import { Tag } from "lucide-react";
 import { campervans } from "@/data/campervans";
 import { importedMotorhomes } from "@/data/smc_imported";
 import ImageWithFallback from "@/components/ImageWithFallback";
+import { getFirstUsableVehicleImage } from "@/lib/vehicle-images";
 
 export default function CampervanOffersPage() {
-  const offerCampervans = [...campervans, ...importedMotorhomes.filter((vehicle) => vehicle.type === "Campervan")].filter((c) => c.isOffer && (!c.availability || c.availability === "Available" || c.availability === "Back order")).slice(0, 60);
+  const offerCampervans = [...campervans, ...importedMotorhomes.filter((vehicle) => vehicle.type === "Campervan")]
+    .filter((c) => c.isOffer && (!c.availability || c.availability === "Available" || c.availability === "Back order"))
+    .flatMap((vehicle) => {
+      const image = getFirstUsableVehicleImage(vehicle.images);
+      return image ? [{ ...vehicle, images: [image] }] : [];
+    })
+    .slice(0, 60);
 
   return (
     <div className="min-h-screen">

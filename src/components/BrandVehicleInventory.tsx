@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Calendar, Scale, Settings, Users } from "lucide-react";
 import ImageWithFallback from "@/components/ImageWithFallback";
 import type { Motorhome } from "@/data/motorhomes";
+import { getFirstUsableVehicleImage } from "@/lib/vehicle-images";
 
 interface BrandVehicleInventoryProps {
   brand: string;
@@ -11,11 +12,15 @@ interface BrandVehicleInventoryProps {
 }
 
 export default function BrandVehicleInventory({ brand, vehicles, basePath, page = 1 }: BrandVehicleInventoryProps) {
+  const vehiclesWithPhotos = vehicles.flatMap((vehicle) => {
+    const image = getFirstUsableVehicleImage(vehicle.images);
+    return image ? [{ ...vehicle, images: [image] }] : [];
+  });
   const pageSize = 18;
-  const pageCount = Math.ceil(vehicles.length / pageSize);
+  const pageCount = Math.ceil(vehiclesWithPhotos.length / pageSize);
   const currentPage = Math.min(Math.max(1, page), pageCount || 1);
-  const visibleVehicles = vehicles.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const availableCount = vehicles.filter((vehicle) => vehicle.availability === "Available").length;
+  const visibleVehicles = vehiclesWithPhotos.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const availableCount = vehiclesWithPhotos.filter((vehicle) => vehicle.availability === "Available").length;
 
   return (
     <main className="container mx-auto px-4 py-12">
@@ -24,7 +29,7 @@ export default function BrandVehicleInventory({ brand, vehicles, basePath, page 
       </Link>
       <h1 className="mt-4 text-4xl font-bold text-secondary">{brand} {basePath.startsWith("/campervans") ? "campervans" : "motorhomes"}</h1>
       <p className="mt-3 text-gray-600">
-        {vehicles.length} catalogue listings · {availableCount} marked available in the latest source check. Please confirm current availability and price before travelling.
+        {vehiclesWithPhotos.length} catalogue listings with vehicle photos · {availableCount} marked available in the latest source check. Please confirm current availability and price before travelling.
       </p>
 
       <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -50,7 +55,7 @@ export default function BrandVehicleInventory({ brand, vehicles, basePath, page 
         })}
       </div>
 
-      {vehicles.length === 0 && <p className="py-12 text-center text-gray-600">No catalogue listings found for this brand.</p>}
+      {vehiclesWithPhotos.length === 0 && <p className="py-12 text-center text-gray-600">No catalogue listings with vehicle photos found for this brand.</p>}
       {pageCount > 1 && (
         <nav aria-label="Brand listings pages" className="mt-10 flex items-center justify-center gap-4">
           {currentPage > 1 && <Link className="rounded border px-4 py-2" href={`${basePath}?page=${currentPage - 1}`}>Previous</Link>}

@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useState } from "react";
 import { campervans } from "@/data/campervans";
-import { importedMotorhomeCards } from "@/data/smc_listing";
+import { importedCardsWithVehiclePhotos } from "@/data/vehicle-card-images";
 import ImageWithFallback from "@/components/ImageWithFallback";
 import Pagination from "@/components/Pagination";
 
 export default function NewCampervansPage() {
   const [page, setPage] = useState(1);
 
-  const catalog = [...campervans, ...importedMotorhomeCards.filter((vehicle) => vehicle.type === "Campervan")];
+  const catalog = [...campervans, ...importedCardsWithVehiclePhotos.filter((vehicle) => vehicle.type === "Campervan")];
   const filteredCampervans = catalog.filter((c) => c.isNew);
   const filteredStock = filteredCampervans;
 

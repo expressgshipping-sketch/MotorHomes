@@ -4,12 +4,12 @@ import Link from "next/link";
 import { Users, Settings, Calendar, Scale } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motorhomes } from "@/data/motorhomes";
-import { importedMotorhomeCards } from "@/data/smc_listing";
+import { importedCardsWithVehiclePhotos } from "@/data/vehicle-card-images";
 import ImageWithFallback from "@/components/ImageWithFallback";
 import Pagination from "@/components/Pagination";
 
 export default function MotorhomesPage() {
-  const catalog = [...motorhomes, ...importedMotorhomeCards.filter((vehicle) => vehicle.type !== "Campervan")];
+  const catalog = [...motorhomes, ...importedCardsWithVehiclePhotos.filter((vehicle) => vehicle.type !== "Campervan")];
   const [filterType, setFilterType] = useState("all");
   const [filterBrand, setFilterBrand] = useState("all");
   const [filterBerths, setFilterBerths] = useState("all");

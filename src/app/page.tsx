@@ -3,9 +3,12 @@ import { ArrowRight, Wrench, DollarSign, Calendar, MapPin, Phone, Mail } from "l
 import Image from "next/image";
 import ImageWithFallback from "@/components/ImageWithFallback";
 import { importedMotorhomes } from "@/data/smc_imported";
+import { getUsableVehicleImages } from "@/lib/vehicle-images";
 
-const latestArrivals = importedMotorhomes
-  .filter((vehicle) => vehicle.availability === "Available" && vehicle.images.length > 0)
+const latestArrivals = importedMotorhomes.flatMap((vehicle) => {
+  const images = getUsableVehicleImages(vehicle.images);
+  return images.length > 0 ? [{ ...vehicle, images }] : [];
+}).filter((vehicle) => vehicle.availability === "Available")
   .slice(0, 4);
 
 export default function HomePage() {

@@ -1,18 +1,23 @@
 import Image from "next/image";
 import Link from "next/link";
 import { importedMotorhomes } from "@/data/smc_imported";
+import { getUsableVehicleImages } from "@/lib/vehicle-images";
 
 export default function ImportedPage({ searchParams }: { searchParams?: { page?: string } }) {
   const pageSize = 24;
-  const pageCount = Math.ceil(importedMotorhomes.length / pageSize);
+  const productsWithPhotos = importedMotorhomes.flatMap((product) => {
+    const images = getUsableVehicleImages(product.images);
+    return images.length > 0 ? [{ ...product, images }] : [];
+  });
+  const pageCount = Math.ceil(productsWithPhotos.length / pageSize);
   const requestedPage = Number(searchParams?.page ?? 1);
   const page = Number.isFinite(requestedPage) ? Math.min(Math.max(1, requestedPage), pageCount) : 1;
-  const products = importedMotorhomes.slice((page - 1) * pageSize, page * pageSize);
+  const products = productsWithPhotos.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <main className="container mx-auto px-4 py-12">
       <h1 className="text-4xl font-bold mb-3">Imported Inventory</h1>
-      <p className="text-gray-600 mb-8">{importedMotorhomes.length} downloaded listings. Availability is shown where it could be verified against the reference site.</p>
+      <p className="text-gray-600 mb-8">{productsWithPhotos.length} downloaded listings with vehicle photos. Availability is shown where it could be verified against the reference site.</p>
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
         {products.map((product) => (
           <article key={product.id} className="overflow-hidden rounded-lg bg-white shadow">

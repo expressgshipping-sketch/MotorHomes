@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getMotorhomeById } from "@/data/catalog-lookups";
 import { importedMotorhomes } from "@/data/smc_imported";
 import VehicleImageGallery from "@/components/VehicleImageGallery";
+import { getUsableVehicleImages } from "@/lib/vehicle-images";
 
 export default function MotorhomeDetailPage({ params }: { params: { id: string } }) {
   const motorhome = getMotorhomeById(parseInt(params.id)) ?? importedMotorhomes.find((vehicle) => vehicle.id === parseInt(params.id) && vehicle.type !== "Campervan");
@@ -11,6 +12,9 @@ export default function MotorhomeDetailPage({ params }: { params: { id: string }
   if (!motorhome) {
     notFound();
   }
+
+  const vehicleImages = getUsableVehicleImages(motorhome.images);
+  if (vehicleImages.length === 0) notFound();
 
   const specificationRows = ([
     ["Availability", motorhome.availability ?? ""],
@@ -51,7 +55,7 @@ export default function MotorhomeDetailPage({ params }: { params: { id: string }
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-2 gap-12">
-          <VehicleImageGallery images={motorhome.images} title={motorhome.name} />
+          <VehicleImageGallery images={vehicleImages} title={motorhome.name} />
 
           {/* Details */}
           <div>
