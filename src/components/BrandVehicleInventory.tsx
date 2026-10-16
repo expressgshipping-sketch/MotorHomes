@@ -35,9 +35,12 @@ export default function BrandVehicleInventory({ brand, vehicles, basePath, page 
       <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {visibleVehicles.map((vehicle) => {
           const path = vehicle.type === "Campervan" ? "/campervans" : "/motorhomes";
+          const title = vehicle.name.toLowerCase().startsWith(brand.toLowerCase())
+            ? vehicle.name
+            : `${brand} ${vehicle.name}`;
           return (
             <article key={vehicle.id} className="overflow-hidden rounded-lg bg-white shadow">
-              <ImageWithFallback src={vehicle.images[0] || ""} alt={`${brand} ${vehicle.name}`} width={800} height={520} className="h-56 w-full object-cover" />
+              <ImageWithFallback src={vehicle.images[0] || ""} alt={title} width={800} height={520} className="h-56 w-full object-cover" />
               <div className="p-5">
                 <p className="text-sm text-gray-600">{vehicle.isNew ? "New" : "Used"} · {vehicle.year || "Year on request"} · {vehicle.availability || "Availability unverified"}</p>
                 <h2 className="mt-2 text-xl font-semibold">{vehicle.name}</h2>

@@ -8,6 +8,7 @@ const smcLogoSha256 = "4cc49e44fa38b473098abcbad1ba0ec45eb046a2522b71116c82f3b11
 
 export function isUsableVehicleImage(image: string): boolean {
   if (!image.startsWith("/smc-images/")) return false;
+  if (image.toLowerCase().endsWith(".png")) return false;
 
   const imagePath = path.resolve(process.cwd(), "public", image.slice(1));
   if (!imagePath.startsWith(publicImagesDirectory)) return false;
