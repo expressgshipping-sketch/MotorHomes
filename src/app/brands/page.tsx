@@ -1,3 +1,5 @@
+export const dynamic = 'force-static';
+
 import Link from "next/link";
 import { motorhomes } from "@/data/motorhomes";
 import { importedMotorhomes } from "@/data/smc_imported";

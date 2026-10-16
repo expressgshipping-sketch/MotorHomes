@@ -1,3 +1,5 @@
+export const dynamic = 'force-static';
+
 import { notFound } from "next/navigation";
 import BrandVehicleInventory from "@/components/BrandVehicleInventory";
 import { getMotorhomesByBrand } from "@/data/catalog-lookups";

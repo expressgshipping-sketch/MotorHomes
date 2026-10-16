@@ -1,3 +1,11 @@
+import { accessories } from '@/data/accessories';
+
+export const dynamic = 'force-static';
+
+export function generateStaticParams() {
+  return accessories.map((a) => ({ id: String(a.id) }));
+}
+
 import Link from "next/link";
 import { ArrowLeft, Phone, ShoppingBag, Check, Package } from "lucide-react";
 import { notFound } from "next/navigation";

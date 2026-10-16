@@ -1,3 +1,11 @@
+export const dynamic = 'force-static';
+
+export function generateStaticParams() {
+  return importedMotorhomes
+    .filter((v) => v.type !== 'Campervan')
+    .map((v) => ({ id: String(v.id) }));
+}
+
 import Link from "next/link";
 import { ArrowLeft, Heart, Phone, Calendar, Users, Gauge, Fuel } from "lucide-react";
 import { notFound } from "next/navigation";

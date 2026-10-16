@@ -1,3 +1,9 @@
+export const dynamic = 'force-static';
+
+export function generateStaticParams() {
+  return blogPosts.map((p) => ({ id: String(p.id) }));
+}
+
 import Link from "next/link";
 import { ArrowLeft, Calendar, Clock, User, Share2 } from "lucide-react";
 import { notFound } from "next/navigation";

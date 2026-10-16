@@ -1,3 +1,5 @@
+export const dynamic = 'force-static';
+
 import BrandVehicleInventory from "@/components/BrandVehicleInventory";
 import { getCampervansByBrand } from "@/data/catalog-lookups";
 
